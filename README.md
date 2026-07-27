@@ -42,7 +42,7 @@ The app should now be running locally (check terminal output for the port/URL).
 
 ---
 
-## 🔑 Demo Login Credentials
+## Demo Login Credentials
 
 | Role | Email | Password |
 |---|---|---|
@@ -54,7 +54,7 @@ The `/login` page also has **Quick Demo** buttons for one-click login as each ro
 
 ---
 
-## ✅ Feature Overview
+## Feature Overview
 
 | Page | Functionality |
 |---|---|
