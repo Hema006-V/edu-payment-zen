@@ -13,6 +13,7 @@ import { useRole } from "@/lib/role-store";
 import { NOTIFICATIONS } from "@/lib/mock-data";
 import { useNavigate } from "@tanstack/react-router";
 import { logoutFn } from "@/lib/auth-server";
+import { setAuthUser } from "@/lib/auth-store";
 import { toast } from "sonner";
 
 export function AppTopbar() {
@@ -92,6 +93,7 @@ export function AppTopbar() {
             <DropdownMenuItem onClick={async () => {
               try {
                 await logoutFn();
+                setAuthUser(null);
                 toast.success("Signed out successfully");
                 navigate({ to: "/login" });
               } catch (err: any) {

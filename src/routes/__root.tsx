@@ -13,6 +13,7 @@ import { AppTopbar } from "@/components/app-topbar";
 import { Toaster } from "@/components/ui/sonner";
 import { getCurrentUserFn } from "../lib/auth-server";
 import { setRole } from "../lib/role-store";
+import { getAuthUser } from "../lib/auth-store";
 
 function NotFoundComponent() {
   return (
@@ -51,10 +52,25 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: async ({ location }) => {
-    const user = await getCurrentUserFn();
+    let user: any = null;
+    try {
+      user = await getCurrentUserFn();
+    } catch {
+      user = null;
+    }
+
+    if (!user && typeof window !== "undefined") {
+      user = getAuthUser();
+    }
+
     if (!user && location.pathname !== "/login") {
       throw redirect({ to: "/login" });
     }
+
+    if (user && location.pathname === "/login") {
+      throw redirect({ to: user.role === "parent" ? "/parent" : "/" });
+    }
+
     if (user) {
       // Sync client state
       setRole(user.role as any);
