@@ -1,9 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { StatCard } from "@/components/stat-card";
-import { PageHeader } from "@/components/page-header";
 import {
   IndianRupee, AlertTriangle, Users, TrendingUp, Plus, Send, Download,
-  BadgePlus, Banknote, FileSpreadsheet, ScrollText,
+  BadgePlus, Banknote, FileSpreadsheet, ScrollText, Receipt as Receipt2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +14,7 @@ import { getDashboardStats, getFeeTypes, getStudents } from "@/lib/server-functi
 import { inr } from "@/lib/types";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/")({ component: Dashboard });
@@ -63,11 +60,15 @@ function Dashboard() {
         subtitle="Live overview of fee collections, dues, and activity."
         actions={
           <>
-            <Button variant="outline" className="glass-soft" onClick={q("Reminder sent")}>
-              <Send className="mr-2 h-4 w-4" /> Send Reminder
+            <Button variant="outline" className="glass-soft" asChild>
+              <Link to="/reminders">
+                <Send className="mr-2 h-4 w-4" /> Send Reminder
+              </Link>
             </Button>
-            <Button className="shadow-[var(--shadow-soft)]" onClick={q("Report generated")}>
-              <Download className="mr-2 h-4 w-4" /> Generate Report
+            <Button className="shadow-[var(--shadow-soft)]" asChild>
+              <Link to="/reports">
+                <Download className="mr-2 h-4 w-4" /> Generate Report
+              </Link>
             </Button>
           </>
         }
@@ -271,5 +272,4 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${map[status] ?? ""}`}>{status}</span>;
 }
 
-// Avoid missing icon: re-alias
-import { Receipt as Receipt2 } from "lucide-react";
+

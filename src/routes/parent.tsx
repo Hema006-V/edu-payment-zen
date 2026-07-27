@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { StatCard } from "@/components/stat-card";
-import { getStudents, getPayments, getFeeTypes } from "@/lib/server-functions";
+import { getStudents, getPayments, getFeeTypes, getParentPortalData } from "@/lib/server-functions";
 import { inr, type Student, type FeeType, type Payment } from "@/lib/types";
 import { format, differenceInDays } from "date-fns";
 import { IndianRupee, AlertTriangle, CheckCircle2, Download, CalendarClock, GraduationCap } from "lucide-react";
@@ -21,16 +21,25 @@ function ParentPortal() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getStudents(), getPayments(), getFeeTypes()]).then(([stus, pays, fees]) => {
-      // For demo purposes, we log in as the first student in the database
-      if (stus.length > 0) {
-        const targetStudent = stus[0];
-        setStudent(targetStudent);
-        setPayments(pays.filter(p => p.studentId === targetStudent.id));
-      }
-      setFeeTypes(fees);
-      setLoading(false);
-    });
+    getParentPortalData()
+      .then(res => {
+        setStudent(res.student);
+        setPayments(res.myPayments);
+        setFeeTypes(res.feeTypes);
+        setLoading(false);
+      })
+      .catch(() => {
+        // Fallback for demo role switching
+        Promise.all([getStudents(), getPayments(), getFeeTypes()]).then(([stus, pays, fees]) => {
+          if (stus.length > 0) {
+            const targetStudent = stus[0];
+            setStudent(targetStudent);
+            setPayments(pays.filter(p => p.studentId === targetStudent.id));
+          }
+          setFeeTypes(fees);
+          setLoading(false);
+        });
+      });
   }, []);
 
   if (loading) {

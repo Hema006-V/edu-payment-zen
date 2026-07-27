@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getStudents, getReminderTemplates } from "@/lib/server-functions";
+import { getStudents, getReminderTemplates, sendReminderFn } from "@/lib/server-functions";
 import { inr, type Student, type ReminderTemplate } from "@/lib/types";
 import { MessageCircle, Smartphone, Users } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -102,10 +102,26 @@ function RemindersPage() {
               <div className="mt-1 text-[11px] text-muted-foreground">Variables: {"{parent} {student} {class} {feeName} {amount} {dueDate} {receiptNo}"}</div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Button className="bg-[#25D366] hover:bg-[#22c05f] text-white" disabled={defaulters.length === 0} onClick={() => toast.success(`WhatsApp sent to ${selected.length || defaulters.length} parents (prototype)`)}>
+              <Button
+                className="bg-[#25D366] hover:bg-[#22c05f] text-white"
+                disabled={defaulters.length === 0}
+                onClick={async () => {
+                  const targetIds = selected.length ? selected : defaulters.map(d => d.id);
+                  await sendReminderFn({ data: { studentIds: targetIds, message: body, channel: "WhatsApp" } });
+                  toast.success(`WhatsApp reminder sent to ${targetIds.length} parents`, { description: "Logged in audit trail." });
+                }}
+              >
                 <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
               </Button>
-              <Button variant="outline" disabled={defaulters.length === 0} onClick={() => toast.success(`SMS queued for ${selected.length || defaulters.length} parents (prototype)`)}>
+              <Button
+                variant="outline"
+                disabled={defaulters.length === 0}
+                onClick={async () => {
+                  const targetIds = selected.length ? selected : defaulters.map(d => d.id);
+                  await sendReminderFn({ data: { studentIds: targetIds, message: body, channel: "SMS" } });
+                  toast.success(`SMS reminder queued for ${targetIds.length} parents`, { description: "Logged in audit trail." });
+                }}
+              >
                 <Smartphone className="mr-2 h-4 w-4" /> SMS
               </Button>
             </div>
