@@ -6,12 +6,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Search, Moon, Sun, ChevronDown, UserRound, Shield, Wallet } from "lucide-react";
+import { Bell, Search, Moon, Sun, ChevronDown, UserRound, Shield, Wallet, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { useRole } from "@/lib/role-store";
 import { NOTIFICATIONS } from "@/lib/mock-data";
 import { useNavigate } from "@tanstack/react-router";
+import { logoutFn } from "@/lib/auth-server";
+import { toast } from "sonner";
 
 export function AppTopbar() {
   const [role, setRole] = useRole();
@@ -85,6 +87,18 @@ export function AppTopbar() {
             <DropdownMenuItem onClick={() => { setRole("parent"); navigate({ to: "/parent" }); }}>
               <UserRound className="mr-2 h-4 w-4" /> Parent
               {role === "parent" && <Badge variant="secondary" className="ml-auto">Active</Badge>}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={async () => {
+              try {
+                await logoutFn();
+                toast.success("Signed out successfully");
+                navigate({ to: "/login" });
+              } catch (err: any) {
+                toast.error(err.message || "Failed to sign out");
+              }
+            }} className="text-destructive focus:text-destructive">
+              <LogOut className="mr-2 h-4 w-4" /> Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

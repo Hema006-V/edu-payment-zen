@@ -1,4 +1,8 @@
 import "./lib/error-capture";
+import { seedDatabase } from "./db/db";
+
+// Auto-seed the SQLite database on startup
+seedDatabase();
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";

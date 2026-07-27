@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
-  Outlet, Link, createRootRouteWithContext, useRouter,
+  Outlet, Link, createRootRouteWithContext, useRouter, redirect, useRouterState,
   HeadContent, Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
@@ -11,6 +11,8 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar } from "@/components/app-topbar";
 import { Toaster } from "@/components/ui/sonner";
+import { getCurrentUserFn } from "../lib/auth-server";
+import { setRole } from "../lib/role-store";
 
 function NotFoundComponent() {
   return (
@@ -48,6 +50,28 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: async ({ location }) => {
+    const user = await getCurrentUserFn();
+    if (!user && location.pathname !== "/login") {
+      throw redirect({ to: "/login" });
+    }
+    if (user) {
+      // Sync client state
+      setRole(user.role as any);
+
+      // If user is a parent and trying to access administrative pages:
+      const adminRoutes = ["/", "/students", "/fees", "/payments", "/reminders", "/reports", "/audit"];
+      if (user.role === "parent" && adminRoutes.includes(location.pathname)) {
+        throw redirect({ to: "/parent" });
+      }
+
+      // If user is admin/accountant trying to access parent portal:
+      if (user.role !== "parent" && location.pathname === "/parent") {
+        throw redirect({ to: "/" });
+      }
+    }
+    return { user };
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -84,6 +108,20 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: s => s.location.pathname });
+  const isLoginPage = pathname === "/login";
+
+  if (isLoginPage) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <main className="flex min-h-screen w-full items-center justify-center bg-transparent">
+          <Outlet />
+        </main>
+        <Toaster richColors position="top-right" />
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <SidebarProvider>
