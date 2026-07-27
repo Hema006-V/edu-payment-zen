@@ -52,14 +52,16 @@ function StudentsPage() {
 
     try {
       await addStudent({
-        name,
-        admissionNo,
-        class: selectedClass,
-        section: selectedSection,
-        parentName,
-        phone,
-        email,
-        transport,
+        data: {
+          name,
+          admissionNo,
+          class: selectedClass,
+          section: selectedSection,
+          parentName,
+          phone,
+          email,
+          transport,
+        },
       });
       toast.success("Student added successfully");
       setOpen(false);

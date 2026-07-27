@@ -47,14 +47,16 @@ function FeesPage() {
 
     try {
       await addFeeType({
-        name,
-        description,
-        amount: Number(amount),
-        dueDate,
-        classes: ["all"],
-        recurring,
-        lateFeePerDay: Number(lateFee) || 0,
-        active,
+        data: {
+          name,
+          description,
+          amount: Number(amount),
+          dueDate,
+          classes: ["all"],
+          recurring,
+          lateFeePerDay: Number(lateFee) || 0,
+          active,
+        },
       });
       toast.success("Fee structure created successfully");
       setOpen(false);
@@ -75,7 +77,7 @@ function FeesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this fee structure?")) return;
     try {
-      await deleteFeeType({ id });
+      await deleteFeeType({ data: { id } });
       toast.success("Fee structure deleted");
       fetchFees();
     } catch (err) {

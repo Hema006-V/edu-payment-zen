@@ -165,14 +165,16 @@ function RecordPaymentDialog({ students, feeTypes, onSave }: RecordPaymentProps)
 
     try {
       await recordPayment({
-        studentId,
-        feeTypeId,
-        amount: Number(amount),
-        method,
-        date,
-        txnId: method === "UPI" ? txnId : undefined,
-        chequeNo: method === "Cheque" ? chequeNo : undefined,
-        bank: method === "Cheque" ? bank : undefined,
+        data: {
+          studentId,
+          feeTypeId,
+          amount: Number(amount),
+          method,
+          date,
+          txnId: method === "UPI" ? txnId : undefined,
+          chequeNo: method === "Cheque" ? chequeNo : undefined,
+          bank: method === "Cheque" ? bank : undefined,
+        },
       });
 
       toast.success("Payment recorded successfully");

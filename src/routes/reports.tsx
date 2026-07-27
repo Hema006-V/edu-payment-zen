@@ -3,8 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getDashboardStats } from "@/lib/server-functions";
-import { inr } from "@/lib/db";
+import { getDashboardStats, inr } from "@/lib/server-functions";
 import { FileSpreadsheet, FileDown, CalendarDays, ClipboardList, PieChart as PieIcon, Users, Building } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,

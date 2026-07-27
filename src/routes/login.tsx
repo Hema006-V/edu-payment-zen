@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { loginFn, getCurrentUserFn } from "@/lib/auth-server";
 import { setRole } from "@/lib/role-store";
 
-export const Route = createFileRoute("/login")({
+export const Route = createFileRoute("/login" as any)({
   beforeLoad: async () => {
     const user = await getCurrentUserFn();
     if (user) {
@@ -34,7 +34,14 @@ function LoginPage() {
 
     setLoading(true);
     try {
-      const user = await loginFn({ data: { email, password } });
+      const result = await loginFn({ data: { email, password } });
+      
+      if (!result.success) {
+        toast.error(result.error || "Failed to log in");
+        return;
+      }
+
+      const user = result.user;
       
       // Update client role-store
       setRole(user.role as any);
@@ -45,7 +52,7 @@ function LoginPage() {
 
       // Redirect depending on user role
       if (user.role === "parent") {
-        navigate({ to: "/parent" });
+        navigate({ to: "/parent" as any });
       } else {
         navigate({ to: "/" });
       }
