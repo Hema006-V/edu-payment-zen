@@ -4,22 +4,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { REMINDER_TEMPLATES, STUDENTS, inr } from "@/lib/mock-data";
-import { MessageCircle, Smartphone, Send, Users } from "lucide-react";
-import { useState } from "react";
+import { getStudents, getReminderTemplates } from "@/lib/server-functions";
+import { inr, type Student, type ReminderTemplate } from "@/lib/types";
+import { MessageCircle, Smartphone, Users } from "lucide-react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reminders")({ component: RemindersPage });
 
 function RemindersPage() {
   const [selected, setSelected] = useState<string[]>([]);
-  const [template, setTemplate] = useState(REMINDER_TEMPLATES[0]);
-  const [body, setBody] = useState(REMINDER_TEMPLATES[0].body);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [templates, setTemplates] = useState<ReminderTemplate[]>([]);
+  const [activeTemplate, setActiveTemplate] = useState<ReminderTemplate | null>(null);
+  const [body, setBody] = useState("");
 
-  const defaulters = STUDENTS.filter(s => s.pending > 0).slice(0, 12);
+  useEffect(() => {
+    getStudents().then(setStudents);
+    getReminderTemplates().then(tmps => {
+      setTemplates(tmps);
+      if (tmps.length > 0) {
+        setActiveTemplate(tmps[0]);
+        setBody(tmps[0].body);
+      }
+    });
+  }, []);
+
+  const defaulters = students.filter(s => s.pending > 0);
   const toggle = (id: string) => setSelected(sel => sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]);
+
+  const selectTemplate = (t: ReminderTemplate) => {
+    setActiveTemplate(t);
+    setBody(t.body);
+  };
 
   return (
     <div className="mx-auto max-w-[1400px] animate-fade-in">
@@ -28,46 +46,52 @@ function RemindersPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="glass border-0 lg:col-span-2">
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="font-display">Recipients</CardTitle>
+            <CardTitle className="font-display">Recipients (Students with Overdue Fees)</CardTitle>
             <Badge variant="secondary" className="gap-1"><Users className="h-3 w-3" /> {selected.length} selected</Badge>
           </CardHeader>
           <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-xs uppercase text-muted-foreground">
-                <tr className="text-left">
-                  <th className="w-10"></th>
-                  <th className="py-2 pr-4">Student</th>
-                  <th className="py-2 pr-4">Parent</th>
-                  <th className="py-2 pr-4">Phone</th>
-                  <th className="py-2 pr-4">Pending</th>
-                </tr>
-              </thead>
-              <tbody>
-                {defaulters.map(s => (
-                  <tr key={s.id} className="border-t border-border/60 hover:bg-muted/30">
-                    <td className="py-2 pl-1"><Checkbox checked={selected.includes(s.id)} onCheckedChange={() => toggle(s.id)} /></td>
-                    <td className="py-2 pr-4">
-                      <div className="font-medium">{s.name}</div>
-                      <div className="text-xs text-muted-foreground">Class {s.class}-{s.section}</div>
-                    </td>
-                    <td className="py-2 pr-4">{s.parentName}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{s.phone}</td>
-                    <td className="py-2 pr-4 font-semibold text-destructive">{inr(s.pending)}</td>
+            {defaulters.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground">
+                No students currently have pending dues.
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="text-xs uppercase text-muted-foreground">
+                  <tr className="text-left">
+                    <th className="w-10"></th>
+                    <th className="py-2 pr-4">Student</th>
+                    <th className="py-2 pr-4">Parent</th>
+                    <th className="py-2 pr-4">Phone</th>
+                    <th className="py-2 pr-4">Pending</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {defaulters.map(s => (
+                    <tr key={s.id} className="border-t border-border/60 hover:bg-muted/30">
+                      <td className="py-2 pl-1"><Checkbox checked={selected.includes(s.id)} onCheckedChange={() => toggle(s.id)} /></td>
+                      <td className="py-2 pr-4">
+                        <div className="font-medium">{s.name}</div>
+                        <div className="text-xs text-muted-foreground">Class {s.class}-{s.section}</div>
+                      </td>
+                      <td className="py-2 pr-4">{s.parentName}</td>
+                      <td className="py-2 pr-4 font-mono text-xs">{s.phone}</td>
+                      <td className="py-2 pr-4 font-semibold text-destructive">{inr(s.pending)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </CardContent>
         </Card>
 
         <Card className="glass border-0">
-          <CardHeader><CardTitle className="font-display">Message</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="font-display">Message Template</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              {REMINDER_TEMPLATES.map(t => (
+              {templates.map(t => (
                 <button key={t.id}
-                  onClick={() => { setTemplate(t); setBody(t.body); }}
-                  className={`rounded-full border px-3 py-1 text-xs ${template.id === t.id ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted/40"}`}>
+                  onClick={() => selectTemplate(t)}
+                  className={`rounded-full border px-3 py-1 text-xs ${activeTemplate?.id === t.id ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted/40"}`}>
                   {t.name}
                 </button>
               ))}
@@ -78,10 +102,10 @@ function RemindersPage() {
               <div className="mt-1 text-[11px] text-muted-foreground">Variables: {"{parent} {student} {class} {feeName} {amount} {dueDate} {receiptNo}"}</div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Button className="bg-[#25D366] hover:bg-[#22c05f] text-white" onClick={() => toast.success(`WhatsApp sent to ${selected.length || defaulters.length} parents (prototype)`)}>
+              <Button className="bg-[#25D366] hover:bg-[#22c05f] text-white" disabled={defaulters.length === 0} onClick={() => toast.success(`WhatsApp sent to ${selected.length || defaulters.length} parents (prototype)`)}>
                 <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
               </Button>
-              <Button variant="outline" onClick={() => toast.success(`SMS queued for ${selected.length || defaulters.length} parents (prototype)`)}>
+              <Button variant="outline" disabled={defaulters.length === 0} onClick={() => toast.success(`SMS queued for ${selected.length || defaulters.length} parents (prototype)`)}>
                 <Smartphone className="mr-2 h-4 w-4" /> SMS
               </Button>
             </div>
@@ -94,5 +118,3 @@ function RemindersPage() {
     </div>
   );
 }
-
-void Input; void Send;

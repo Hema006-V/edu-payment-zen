@@ -1,14 +1,15 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Receipt, Wallet, FileText, BellRing,
-  BarChart3, ScrollText, GraduationCap, Sparkles,
+  BarChart3, ScrollText, GraduationCap, LogOut,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { SCHOOL } from "@/lib/mock-data";
+import { Button } from "@/components/ui/button";
+import { useAuth, logout } from "@/lib/auth-store";
 import { useRole } from "@/lib/role-store";
 
 const adminItems = [
@@ -31,8 +32,15 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: s => s.location.pathname });
   const [role] = useRole();
+  const [user] = useAuth();
+  const navigate = useNavigate();
 
   const items = role === "parent" ? parentItems : adminItems;
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -43,7 +51,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <div className="truncate font-display text-sm font-bold leading-tight">{SCHOOL.name}</div>
+              <div className="truncate font-display text-sm font-bold leading-tight">ABC International School</div>
               <div className="truncate text-[11px] text-muted-foreground">Fee Management</div>
             </div>
           )}
@@ -75,11 +83,21 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-3">
         {!collapsed && (
-          <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3 text-xs">
-            <div className="flex items-center gap-2 font-semibold">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> Premium Plan
-            </div>
-            <div className="mt-1 text-muted-foreground">All modules enabled · v1.0</div>
+          <div className="space-y-2">
+            {user && (
+              <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3 text-xs">
+                <div className="font-semibold">{user.name}</div>
+                <div className="mt-0.5 text-muted-foreground capitalize">{user.role} · {user.email}</div>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-muted-foreground hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Sign Out
+            </Button>
           </div>
         )}
       </SidebarFooter>

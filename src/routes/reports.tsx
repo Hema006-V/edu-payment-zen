@@ -3,26 +3,44 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MONTHLY_REVENUE, FEE_TYPE_COLLECTION, METHOD_BREAKDOWN, PAYMENTS, STUDENTS, inr } from "@/lib/mock-data";
+import { getDashboardStats } from "@/lib/server-functions";
+import { inr } from "@/lib/db";
 import { FileSpreadsheet, FileDown, CalendarDays, ClipboardList, PieChart as PieIcon, Users, Building } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   BarChart, Bar, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { toast } from "sonner";
+import { useState, useEffect } from "react";
 
 export const Route = createFileRoute("/reports")({ component: ReportsPage });
 
 const CHART_COLORS = ["var(--chart-1)","var(--chart-2)","var(--chart-3)","var(--chart-4)","var(--chart-5)"];
 
+type DashboardData = Awaited<ReturnType<typeof getDashboardStats>>;
+
 function ReportsPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+
+  useEffect(() => {
+    getDashboardStats().then(setData);
+  }, []);
+
+  if (!data) {
+    return (
+      <div className="mx-auto max-w-[1400px] animate-fade-in">
+        <PageHeader title="Reports" subtitle="Loading..." />
+      </div>
+    );
+  }
+
   const cards = [
-    { icon: CalendarDays, title: "Daily Collection", desc: "Today's payments across methods", value: inr(84500) },
-    { icon: CalendarDays, title: "Monthly Collection", desc: "Current month cumulative", value: inr(1_180_000) },
-    { icon: ClipboardList, title: "Pending Fees", desc: `Across ${STUDENTS.filter(s=>s.pending>0).length} students`, value: inr(STUDENTS.reduce((s,x)=>s+x.pending,0)) },
-    { icon: Users, title: "Student-wise", desc: "Per-student ledger", value: `${STUDENTS.length} students` },
+    { icon: CalendarDays, title: "Daily Collection", desc: "Today's payments across methods", value: inr(data.todaysCollection) },
+    { icon: CalendarDays, title: "Total Collection", desc: "Cumulative system collection", value: inr(data.totalRevenue) },
+    { icon: ClipboardList, title: "Pending Fees", desc: `Across ${data.withPending} students`, value: inr(data.pendingTotal) },
+    { icon: Users, title: "Student-wise", desc: "Per-student ledger", value: `${data.totalStudents} students` },
     { icon: Building, title: "Class-wise", desc: "Class-by-class summary", value: "15 classes" },
-    { icon: PieIcon, title: "Payment Method", desc: "UPI vs Cash vs Cheque", value: "58 / 22 / 20" },
+    { icon: PieIcon, title: "Payment Method Split", desc: "Percentage by payment type", value: data.methodBreakdown.map(m => `${m.name}:${m.value}%`).join(" / ") || "No data" },
   ];
 
   return (
@@ -62,60 +80,76 @@ function ReportsPage() {
         ))}
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="glass border-0 lg:col-span-2">
-          <CardHeader><CardTitle className="font-display">Revenue Summary</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={MONTHLY_REVENUE}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="month" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} axisLine={false} tickLine={false}
-                  tickFormatter={(v) => v >= 100000 ? `${(v/100000).toFixed(1)}L` : v.toString()} />
-                <Tooltip formatter={(v: number) => inr(v)} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12 }} />
-                <Line type="monotone" dataKey="revenue" stroke="var(--chart-1)" strokeWidth={3} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="pending" stroke="var(--chart-4)" strokeWidth={2} strokeDasharray="4 4" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+      {data.totalPaymentsCount === 0 ? (
+        <Card className="glass mt-6 border-0">
+          <CardContent className="p-12 text-center text-muted-foreground">
+            No transaction records available. Reports will become active as payments are recorded.
           </CardContent>
         </Card>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card className="glass border-0 lg:col-span-2">
+            <CardHeader><CardTitle className="font-display">Revenue Summary</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={data.monthlyRevenue}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="month" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} axisLine={false} tickLine={false}
+                    tickFormatter={(v) => v >= 100000 ? `${(v/100000).toFixed(1)}L` : v.toString()} />
+                  <Tooltip formatter={(v: number) => inr(v)} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                  <Line type="monotone" dataKey="revenue" stroke="var(--chart-1)" strokeWidth={3} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="pending" stroke="var(--chart-4)" strokeWidth={2} strokeDasharray="4 4" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        <Card className="glass border-0">
-          <CardHeader><CardTitle className="font-display">Method Split</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={METHOD_BREAKDOWN} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={4}>
-                  {METHOD_BREAKDOWN.map((_, i) => <Cell key={i} fill={CHART_COLORS[i]} />)}
-                </Pie>
-                <Legend />
-                <Tooltip formatter={(v: number) => `${v}%`} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          <Card className="glass border-0">
+            <CardHeader><CardTitle className="font-display">Method Split</CardTitle></CardHeader>
+            <CardContent>
+              {data.methodBreakdown.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={data.methodBreakdown} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={4}>
+                      {data.methodBreakdown.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
+                    <Legend />
+                    <Tooltip formatter={(v: number) => `${v}%`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="grid h-[280px] place-items-center text-sm text-muted-foreground">No method split data yet</div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card className="glass border-0 lg:col-span-3">
-          <CardHeader><CardTitle className="font-display">Fee-Type Breakdown</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={FEE_TYPE_COLLECTION}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false}
-                  tickFormatter={(v) => v >= 100000 ? `${(v/100000).toFixed(1)}L` : v.toString()} />
-                <Tooltip formatter={(v: number) => inr(v)} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12 }} />
-                <Legend />
-                <Bar dataKey="collected" radius={[8,8,0,0]} fill="var(--chart-1)" />
-                <Bar dataKey="pending"   radius={[8,8,0,0]} fill="var(--chart-4)" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="glass border-0 lg:col-span-3">
+            <CardHeader><CardTitle className="font-display">Fee-Type Breakdown</CardTitle></CardHeader>
+            <CardContent>
+              {data.feeTypeCollection.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={data.feeTypeCollection}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false}
+                      tickFormatter={(v) => v >= 100000 ? `${(v/100000).toFixed(1)}L` : v.toString()} />
+                    <Tooltip formatter={(v: number) => inr(v)} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                    <Legend />
+                    <Bar dataKey="collected" radius={[8,8,0,0]} fill="var(--chart-1)" />
+                    <Bar dataKey="pending"   radius={[8,8,0,0]} fill="var(--chart-4)" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="grid h-[280px] place-items-center text-sm text-muted-foreground">No fee type data yet</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="mt-2 text-xs text-muted-foreground">
-        {PAYMENTS.length} transactions available for export. <Badge variant="secondary">CSV</Badge> <Badge variant="secondary">Excel</Badge>
+        {data.totalPaymentsCount} transactions available for export. <Badge variant="secondary">CSV</Badge> <Badge variant="secondary">Excel</Badge>
       </div>
     </div>
   );

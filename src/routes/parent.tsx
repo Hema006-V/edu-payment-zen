@@ -5,23 +5,62 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { StatCard } from "@/components/stat-card";
-import {
-  CURRENT_PARENT_STUDENT_ID, PAYMENTS, FEE_TYPES, studentById, feeById, inr,
-} from "@/lib/mock-data";
+import { getStudents, getPayments, getFeeTypes } from "@/lib/server-functions";
+import { inr, type Student, type FeeType, type Payment } from "@/lib/types";
 import { format, differenceInDays } from "date-fns";
 import { IndianRupee, AlertTriangle, CheckCircle2, Download, CalendarClock, GraduationCap } from "lucide-react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/parent")({ component: ParentPortal });
 
 function ParentPortal() {
-  const student = studentById(CURRENT_PARENT_STUDENT_ID);
-  const myPayments = PAYMENTS.filter(p => p.studentId === student.id);
+  const [student, setStudent] = useState<Student | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [feeTypes, setFeeTypes] = useState<FeeType[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([getStudents(), getPayments(), getFeeTypes()]).then(([stus, pays, fees]) => {
+      // For demo purposes, we log in as the first student in the database
+      if (stus.length > 0) {
+        const targetStudent = stus[0];
+        setStudent(targetStudent);
+        setPayments(pays.filter(p => p.studentId === targetStudent.id));
+      }
+      setFeeTypes(fees);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-[1200px] animate-fade-in">
+        <PageHeader title="Parent Portal" subtitle="Loading..." />
+      </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <div className="mx-auto max-w-[1200px] animate-fade-in">
+        <PageHeader title="Parent Portal" subtitle="No students registered yet." />
+        <Card className="glass border-0">
+          <CardContent className="p-12 text-center text-muted-foreground">
+            There are no student accounts in the system. Log in as Administrator to register students and assign fees.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const myPayments = payments;
   const totalPaid = myPayments.reduce((s, p) => s + p.amount, 0);
   const pending = student.pending;
-  const upcoming = FEE_TYPES.filter(f => f.active).slice(0, 4).map(f => ({
-    ...f, daysLeft: differenceInDays(new Date(f.dueDate), new Date()),
-  }));
+  const upcoming = feeTypes.filter(f => f.active).slice(0, 4).map(f => {
+    const daysLeft = differenceInDays(new Date(f.dueDate), new Date());
+    return { ...f, daysLeft };
+  });
 
   const total = totalPaid + pending;
   const pct = total ? Math.round((totalPaid / total) * 100) : 100;
@@ -59,38 +98,46 @@ function ParentPortal() {
         <Card className="glass border-0">
           <CardHeader><CardTitle className="font-display">Fee Structure</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {FEE_TYPES.filter(f => f.active).slice(0, 6).map(f => (
-              <div key={f.id} className="flex items-center justify-between rounded-xl border p-3">
-                <div>
-                  <div className="text-sm font-medium">{f.name}</div>
-                  <div className="text-xs text-muted-foreground">{f.recurring} · due {format(new Date(f.dueDate), "dd MMM")}</div>
+            {feeTypes.filter(f => f.active).length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">No active fee structures found.</div>
+            ) : (
+              feeTypes.filter(f => f.active).slice(0, 6).map(f => (
+                <div key={f.id} className="flex items-center justify-between rounded-xl border p-3">
+                  <div>
+                    <div className="text-sm font-medium">{f.name}</div>
+                    <div className="text-xs text-muted-foreground">{f.recurring} · due {format(new Date(f.dueDate), "dd MMM")}</div>
+                  </div>
+                  <div className="text-sm font-semibold">{inr(f.amount)}</div>
                 </div>
-                <div className="text-sm font-semibold">{inr(f.amount)}</div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 
         <Card className="glass border-0">
           <CardHeader><CardTitle className="font-display">Upcoming Due Dates</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {upcoming.map(f => {
-              const overdue = f.daysLeft < 0;
-              return (
-                <div key={f.id} className="flex items-center justify-between rounded-xl border p-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`grid h-9 w-9 place-items-center rounded-lg ${overdue ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary"}`}>
-                      <CalendarClock className="h-4 w-4" />
+            {upcoming.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">No upcoming due dates.</div>
+            ) : (
+              upcoming.map(f => {
+                const overdue = f.daysLeft < 0;
+                return (
+                  <div key={f.id} className="flex items-center justify-between rounded-xl border p-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`grid h-9 w-9 place-items-center rounded-lg ${overdue ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary"}`}>
+                        <CalendarClock className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{f.name}</div>
+                        <div className="text-xs text-muted-foreground">{overdue ? `Overdue by ${Math.abs(f.daysLeft)}d` : `Due in ${f.daysLeft}d`} · {inr(f.amount)}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm font-medium">{f.name}</div>
-                      <div className="text-xs text-muted-foreground">{overdue ? `Overdue by ${Math.abs(f.daysLeft)}d` : `Due in ${f.daysLeft}d`} · {inr(f.amount)}</div>
-                    </div>
+                    <Badge variant={overdue ? "destructive" : "secondary"}>{overdue ? "Overdue" : "Upcoming"}</Badge>
                   </div>
-                  <Badge variant={overdue ? "destructive" : "secondary"}>{overdue ? "Overdue" : "Upcoming"}</Badge>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </CardContent>
         </Card>
       </div>
@@ -114,7 +161,7 @@ function ParentPortal() {
                 <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No payments yet.</td></tr>
               )}
               {myPayments.map(p => {
-                const f = feeById(p.feeTypeId);
+                const f = feeTypes.find(f => f.id === p.feeTypeId) || { name: "Unknown" };
                 return (
                   <tr key={p.id} className="border-t border-border/60 hover:bg-muted/30">
                     <td className="py-2 pr-4 font-mono text-xs">{p.receiptNo}</td>

@@ -1,0 +1,48 @@
+{
+  "users": [
+    {
+      "id": "usr_001",
+      "email": "admin@school.com",
+      "password": "admin123",
+      "name": "Admin User",
+      "role": "admin"
+    }
+  ],
+  "students": [],
+  "feeTypes": [],
+  "payments": [],
+  "auditLogs": [],
+  "reminderTemplates": [
+    {
+      "id": "t1",
+      "name": "Upcoming Due",
+      "channel": "WhatsApp",
+      "body": "Dear {parent}, this is a friendly reminder that {feeName} of ₹{amount} for {student} ({class}) is due on {dueDate}. — School Fee Management"
+    },
+    {
+      "id": "t2",
+      "name": "Overdue",
+      "channel": "SMS",
+      "body": "Dear {parent}, {feeName} of ₹{amount} for {student} is overdue since {dueDate}. Please pay to avoid late fees."
+    },
+    {
+      "id": "t3",
+      "name": "Payment Confirmation",
+      "channel": "WhatsApp",
+      "body": "Payment of ₹{amount} received for {student}. Receipt {receiptNo}. Thank you!"
+    },
+    {
+      "id": "t4",
+      "name": "Receipt Sent",
+      "channel": "SMS",
+      "body": "Receipt {receiptNo} for {student} has been emailed."
+    }
+  ],
+  "school": {
+    "name": "ABC International School",
+    "tagline": "Excellence in Education",
+    "address": "12 Learning Avenue, New Delhi 110001",
+    "phone": "+91 98765 43210",
+    "email": "accounts@abcinternational.edu"
+  }
+}
