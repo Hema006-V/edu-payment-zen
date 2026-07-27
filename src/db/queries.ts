@@ -1,12 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { db } from "./db";
 import * as schema from "./schema";
-import { desc, eq, sql } from "drizzle-orm";
-import { getCookie } from "vinxi/http";
-
 // Utility to get current authenticated user role/id from session
 async function getAuthUserId() {
-  return getCookie("session_user_id");
+  try {
+    const { getCookie } = await import("vinxi/http");
+    return getCookie("session_user_id");
+  } catch {
+    return undefined;
+  }
 }
 
 export const getStudentsFn = createServerFn({ method: "GET" })

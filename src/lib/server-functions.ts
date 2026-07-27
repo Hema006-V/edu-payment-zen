@@ -3,7 +3,6 @@
 // that Samyuktha's route files expect.
 
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie, setCookie, deleteCookie } from "vinxi/http";
 import { db } from "../db/db";
 import * as schema from "../db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -12,6 +11,34 @@ import type {
 } from "./types";
 
 export * from "./types";
+
+// Dynamic cookie helpers to avoid Vite dependency scanner failures on client bundles
+async function setCookieHelper(name: string, value: string, options?: any) {
+  try {
+    const { setCookie } = await import("vinxi/http");
+    setCookie(name, value, options);
+  } catch {
+    // fallback for client/non-vinxi environment
+  }
+}
+
+async function deleteCookieHelper(name: string, options?: any) {
+  try {
+    const { deleteCookie } = await import("vinxi/http");
+    deleteCookie(name, options);
+  } catch {
+    // fallback
+  }
+}
+
+async function getCookieHelper(name: string) {
+  try {
+    const { getCookie } = await import("vinxi/http");
+    return getCookie(name);
+  } catch {
+    return undefined;
+  }
+}
 
 // ─── ID Generator ─────────────────────────────────────────────────────────────
 let counter = Date.now();
@@ -36,7 +63,7 @@ export const loginFn = createServerFn({ method: "POST" })
     if (!user || user.password !== data.password) {
       return { success: false as const, error: "Invalid email or password" };
     }
-    setCookie("session_user_id", user.id, { path: "/", maxAge: 60 * 60 * 24, httpOnly: true, sameSite: "strict" });
+    await setCookieHelper("session_user_id", user.id, { path: "/", maxAge: 60 * 60 * 24, httpOnly: true, sameSite: "strict" });
     return {
       success: true as const,
       user: { id: user.id, email: user.email, name: user.email.split("@")[0], role: user.role as Role },
@@ -45,13 +72,13 @@ export const loginFn = createServerFn({ method: "POST" })
 
 export const logoutFn = createServerFn({ method: "POST" })
   .handler(async () => {
-    deleteCookie("session_user_id", { path: "/" });
+    await deleteCookieHelper("session_user_id", { path: "/" });
     return { success: true };
   });
 
 export const getCurrentUserFn = createServerFn({ method: "GET" })
   .handler(async () => {
-    const userId = getCookie("session_user_id");
+    const userId = await getCookieHelper("session_user_id");
     if (!userId) return null;
     const user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
     if (!user) return null;
@@ -254,7 +281,7 @@ export const getDashboardStats = createServerFn({ method: "GET" }).handler(async
 
 // ─── Parent Portal Data ───────────────────────────────────────────────────────
 export const getParentPortalData = createServerFn({ method: "GET" }).handler(async () => {
-  const userId = getCookie("session_user_id");
+  const userId = await getCookieHelper("session_user_id");
   if (!userId) throw new Error("Unauthorized");
   const user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
   if (!user?.studentId) throw new Error("Parent record not found");

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { loginFn, getCurrentUserFn } from "@/lib/auth-server";
 import { setRole } from "@/lib/role-store";
 
-export const Route = createFileRoute("/login" as any)({
+export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
     const user = await getCurrentUserFn();
     if (user) {
