@@ -1,3 +1,5 @@
+import { StatCard } from "@/components/stat-card";
+import { PageHeader } from "@/components/page-header";
 import {
   IndianRupee, AlertTriangle, Users, TrendingUp, Plus, Send, Download,
   BadgePlus, Banknote, FileSpreadsheet, ScrollText, Receipt as Receipt2,

@@ -23,9 +23,9 @@ function ParentPortal() {
   useEffect(() => {
     getParentPortalData()
       .then(res => {
-        setStudent(res.student);
-        setPayments(res.myPayments);
-        setFeeTypes(res.feeTypes);
+        setStudent(res.student as Student);
+        setPayments(res.myPayments as Payment[]);
+        setFeeTypes(res.feeTypes as FeeType[]);
         setLoading(false);
       })
       .catch(() => {

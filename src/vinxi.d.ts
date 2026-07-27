@@ -1,5 +1,6 @@
 declare module "vinxi/http" {
-  export function getCookie(name: string): string | undefined;
-  export function setCookie(name: string, value: string, options?: any): void;
-  export function deleteCookie(name: string, options?: any): void;
+  export function getEvent(): any;
+  export function getCookie(eventOrName: any, name?: string): string | undefined;
+  export function setCookie(eventOrName: any, nameOrValue: string, valueOrOptions?: any, options?: any): void;
+  export function deleteCookie(eventOrName: any, nameOrOptions?: any, options?: any): void;
 }
