@@ -15,8 +15,9 @@ export * from "./types";
 // Dynamic cookie helpers to avoid Vite dependency scanner failures on client bundles
 async function setCookieHelper(name: string, value: string, options?: any) {
   try {
-    const { setCookie } = await import("vinxi/http");
-    setCookie(name, value, options);
+    const { getEvent, setCookie } = await import("vinxi/http");
+    const event = getEvent();
+    if (event) setCookie(event, name, value, options);
   } catch {
     // fallback for client/non-vinxi environment
   }
@@ -24,8 +25,9 @@ async function setCookieHelper(name: string, value: string, options?: any) {
 
 async function deleteCookieHelper(name: string, options?: any) {
   try {
-    const { deleteCookie } = await import("vinxi/http");
-    deleteCookie(name, options);
+    const { getEvent, deleteCookie } = await import("vinxi/http");
+    const event = getEvent();
+    if (event) deleteCookie(event, name, options);
   } catch {
     // fallback
   }
@@ -33,11 +35,16 @@ async function deleteCookieHelper(name: string, options?: any) {
 
 async function getCookieHelper(name: string) {
   try {
-    const { getCookie } = await import("vinxi/http");
-    return getCookie(name);
+    const { getEvent, getCookie } = await import("vinxi/http");
+    const event = getEvent();
+    if (event) {
+      const val = getCookie(event, name);
+      if (val) return val;
+    }
   } catch {
-    return undefined;
+    // fallback
   }
+  return undefined;
 }
 
 // ─── ID Generator ─────────────────────────────────────────────────────────────

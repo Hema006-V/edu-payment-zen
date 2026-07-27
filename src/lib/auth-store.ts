@@ -39,8 +39,10 @@ export function setAuthUser(user: AuthUser | null) {
   if (typeof window !== "undefined") {
     if (user) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+      document.cookie = `session_user_id=${user.id}; path=/; max-age=86400; SameSite=Strict`;
     } else {
       localStorage.removeItem(STORAGE_KEY);
+      document.cookie = `session_user_id=; path=/; max-age=0; SameSite=Strict`;
     }
   }
   notify();

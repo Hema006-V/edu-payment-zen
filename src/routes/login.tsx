@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { loginFn, getCurrentUserFn } from "@/lib/auth-server";
 import { setRole } from "@/lib/role-store";
+import { setAuthUser } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
@@ -43,7 +44,8 @@ function LoginPage() {
 
       const user = result.user;
       
-      // Update client role-store
+      // Update client role-store and auth-store
+      setAuthUser(user);
       setRole(user.role as any);
       
       toast.success("Welcome back!", {
